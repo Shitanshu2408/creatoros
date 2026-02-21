@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* =========================================
+   THEME SYSTEM
+========================================= */
+
+@theme {
+  /* Core Brand Colors */
+  --color-primary: 79 70 229;        /* Indigo 600 */
+  --color-primary-dark: 67 56 202;   /* Indigo 700 */
+  --color-accent: 6 182 212;         /* Cyan 500 */
+
+  /* Neutral System */
+  --color-bg-soft: 241 245 249;      /* Slate 100 */
+  --color-bg-card: 255 255 255;     /* White */
+  --color-border: 226 232 240;      /* Slate 200 */
+
+  /* Text System */
+  --color-text-dark: 15 23 42;       /* Slate 900 */
+  --color-text-muted: 100 116 139;  /* Slate 500 */
+}
+
+/* =========================================
+   GLOBAL BASE STYLES
+========================================= */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply antialiased;
+  background-color: rgb(var(--color-bg-soft));
+  color: rgb(var(--color-text-dark));
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Smooth UI feel */
+* {
+  @apply transition-colors duration-150;
+}
+
+/* Better tap feel on mobile */
+button,
+input,
+select {
+  @apply focus:outline-none;
+}
+
+/* =========================================
+   SELECTION COLOR
+========================================= */
+
+::selection {
+  background-color: rgb(var(--color-primary));
+  color: white;
+}
+
+/* =========================================
+   SCROLLBAR POLISH (Modern Browsers)
+========================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(var(--color-bg-soft));
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-border));
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-primary) / 0.6);
+}
+
+/* =========================================
+   CARD DEFAULT STYLE UTILITY
+========================================= */
+
+.card {
+  background-color: rgb(var(--color-bg-card));
+  border: 1px solid rgb(var(--color-border));
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+/* =========================================
+   INPUT DEFAULT STYLE UTILITY
+========================================= */
+
+.input {
+  @apply w-full h-12 px-4 rounded-lg border;
+  border-color: rgb(var(--color-border));
+}
+
+.input:focus {
+  border-color: rgb(var(--color-primary));
+  box-shadow: 0 0 0 2px rgb(var(--color-primary) / 0.15);
+}
+
+/* =========================================
+   BUTTON DEFAULT STYLE UTILITY
+========================================= */
+
+.btn-primary {
+  background-color: rgb(var(--color-primary));
+  color: white;
+  border-radius: 0.75rem;
+  height: 3rem;
+  padding: 0 1.5rem;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background-color: rgb(var(--color-primary-dark));
+}
