@@ -17,7 +17,16 @@ const app = express();
 // =====================
 // Middleware
 // =====================
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      process.env.FRONTEND_URL,
+    ],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // =====================
@@ -30,32 +39,10 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // =====================
-// Protected Test Route
-// =====================
-app.get("/api/protected", authMiddleware, (req, res) => {
-  res.json({
-    message: "Protected route accessed successfully 🔐",
-    user: req.user,
-  });
-});
-
-// =====================
 // Root Route
 // =====================
 app.get("/", (req, res) => {
   res.send("CreatorOS API Running 🚀");
-});
-
-// =====================
-// Database Test Route
-// =====================
-app.get("/test-db", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT NOW()");
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // =====================
