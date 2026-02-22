@@ -1,23 +1,19 @@
 const { Pool } = require("pg");
 
 const pool = new Pool({
-  user: process.env.DB_USER,
   host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
+  port: 5432,
+  user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  port: Number(process.env.DB_PORT), // important fix
+  database: process.env.DB_NAME,
+
   ssl: {
     rejectUnauthorized: false,
   },
 });
 
-// Test connection on startup
 pool.connect()
-  .then(() => {
-    console.log("✅ Supabase database connected successfully");
-  })
-  .catch((err) => {
-    console.error("❌ Supabase connection error:", err.message);
-  });
+  .then(() => console.log("Supabase connected successfully"))
+  .catch(err => console.error("Supabase connection error:", err));
 
 module.exports = pool;
