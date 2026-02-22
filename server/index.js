@@ -14,77 +14,125 @@ const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
 
+
 // =====================
-// Middleware
+// CORS CONFIGURATION (FULLY FIXED)
 // =====================
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://creator-os-cyan.vercel.app", // your current vercel domain
+  "https://creatoros.vercel.app", // optional future domain
+];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173", // local frontend
-      process.env.FRONTEND_URL, // production frontend
-    ].filter(Boolean),
+    origin: function (origin, callback) {
+      // allow requests with no origin (mobile apps, postman, curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        console.log("Blocked by CORS:", origin);
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 
+
+// =====================
+// MIDDLEWARE
+// =====================
+
 app.use(express.json());
 
 
+// =====================
+// TEST ROUTES
+// =====================
 
-// ADD THIS ROUTE
-app.get("/test-users", async (req, res) => {
+// test database connection
+app.get("/test-db", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM users");
-    res.json(result.rows);
+    const result = await pool.query("SELECT NOW()");
+    res.json({
+      success: true,
+      time: result.rows[0],
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("DB ERROR:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
   }
 });
 
+// test users table
+app.get("/test-users", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM users");
+    res.json({
+      success: true,
+      users: result.rows,
+    });
+  } catch (err) {
+    console.error("USERS ERROR:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+
 // =====================
-// API Routes
+// API ROUTES
 // =====================
+
 app.use("/api/auth", authRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
+
 // =====================
-// Protected Test Route
+// PROTECTED ROUTE TEST
 // =====================
+
 app.get("/api/protected", authMiddleware, (req, res) => {
   res.json({
+    success: true,
     message: "Protected route accessed successfully 🔐",
     user: req.user,
   });
 });
 
-// =====================
-// Database Test Route
-// =====================
-app.get("/test-db", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT NOW()");
-    res.json(result.rows);
-  } catch (err) {
-    console.error("DB ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // =====================
-// Root Route
+// ROOT ROUTE
 // =====================
+
 app.get("/", (req, res) => {
-  res.send("CreatorOS API Running 🚀");
+  res.json({
+    success: true,
+    message: "CreatorOS API Running 🚀",
+    environment: process.env.NODE_ENV || "development",
+  });
 });
 
+
 // =====================
-// Start Server
+// START SERVER
 // =====================
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 CreatorOS Server running on port ${PORT}`);
 });
