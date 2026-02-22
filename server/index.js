@@ -20,9 +20,9 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
-      process.env.FRONTEND_URL,
-    ],
+      "http://localhost:5173", // local frontend
+      process.env.FRONTEND_URL, // production frontend
+    ].filter(Boolean),
     credentials: true,
   })
 );
@@ -37,6 +37,29 @@ app.use("/api/clients", clientRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+
+// =====================
+// Protected Test Route
+// =====================
+app.get("/api/protected", authMiddleware, (req, res) => {
+  res.json({
+    message: "Protected route accessed successfully 🔐",
+    user: req.user,
+  });
+});
+
+// =====================
+// Database Test Route
+// =====================
+app.get("/test-db", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("DB ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // =====================
 // Root Route
