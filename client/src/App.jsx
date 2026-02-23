@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -8,36 +9,45 @@ import Payments from "./pages/Payments";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
-  const token = localStorage.getItem("token");
+
+  const isAuthenticated = !!localStorage.getItem("token");
 
   return (
     <BrowserRouter>
+
       <Routes>
 
-        {/* Root Route */}
+        {/* Default route */}
         <Route
           path="/"
           element={
-            token ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+            isAuthenticated
+              ? <Navigate to="/dashboard" replace />
+              : <Navigate to="/login" replace />
           }
         />
 
-        {/* Public Routes */}
+        {/* Login route */}
         <Route
           path="/login"
           element={
-            token ? <Navigate to="/dashboard" replace /> : <Login />
+            !isAuthenticated
+              ? <Login />
+              : <Navigate to="/dashboard" replace />
           }
         />
 
+        {/* Register route */}
         <Route
           path="/register"
           element={
-            token ? <Navigate to="/dashboard" replace /> : <Register />
+            !isAuthenticated
+              ? <Register />
+              : <Navigate to="/dashboard" replace />
           }
         />
 
-        {/* Protected Routes */}
+        {/* Protected routes */}
         <Route
           path="/dashboard"
           element={
@@ -74,15 +84,19 @@ function App() {
           }
         />
 
-        {/* Catch All */}
+        {/* Catch-all route */}
         <Route
           path="*"
-          element={<Navigate to="/" replace />}
+          element={
+            <Navigate to="/" replace />
+          }
         />
 
       </Routes>
+
     </BrowserRouter>
   );
+
 }
 
 export default App;

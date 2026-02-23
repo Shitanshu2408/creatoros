@@ -5,10 +5,20 @@ export default function ProtectedRoute({ children }) {
   const location = useLocation();
 
   const token = localStorage.getItem("token");
-  const user = localStorage.getItem("user");
+  const userString = localStorage.getItem("user");
+
+  let user = null;
+
+  try {
+    user = userString ? JSON.parse(userString) : null;
+  } catch {
+    user = null;
+  }
+
+  const isAuthenticated = !!token && !!user;
 
   // Not authenticated → redirect to login
-  if (!token || !user) {
+  if (!isAuthenticated) {
     return (
       <Navigate
         to="/login"
