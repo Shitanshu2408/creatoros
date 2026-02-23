@@ -6,7 +6,10 @@ export default function Payments() {
 
   const [summary, setSummary] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [payments, setPayments] = useState([]);
+
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
     project_id: "",
@@ -17,60 +20,126 @@ export default function Payments() {
   });
 
 
-  // ===============================
-  // FETCH DATA
-  // ===============================
 
+  // ===============================
+  // FETCH SUMMARY
+  // ===============================
   const fetchSummary = async () => {
+
     try {
+
       const res = await api.get("/projects/summary");
+
       setSummary(res.data);
+
     } catch (err) {
-      console.error("Failed to fetch summary", err);
+
+      console.error(err);
+
     } finally {
+
       setLoading(false);
+
     }
+
   };
 
+
+
+  // ===============================
+  // FETCH PROJECTS
+  // ===============================
   const fetchProjects = async () => {
+
     try {
+
       const res = await api.get("/projects");
+
       setProjects(res.data);
+
     } catch (err) {
-      console.error("Failed to fetch projects", err);
+
+      console.error(err);
+
     }
+
   };
+
+
+
+  // ===============================
+  // FETCH PAYMENTS LIST
+  // ===============================
+  const fetchPayments = async () => {
+
+    try {
+
+      const res = await api.get("/payments");
+
+      setPayments(res.data);
+
+    } catch (err) {
+
+      console.error(err);
+
+    }
+
+  };
+
+
 
   useEffect(() => {
+
     fetchSummary();
     fetchProjects();
+    fetchPayments();
+
   }, []);
 
 
-  // ===============================
-  // FORM HANDLING
-  // ===============================
 
+
+  // ===============================
+  // HANDLE INPUT
+  // ===============================
   const handleChange = (e) => {
+
     setForm({
       ...form,
       [e.target.name]: e.target.value,
     });
+
   };
 
 
+
+  // ===============================
+  // CREATE OR UPDATE PAYMENT
+  // ===============================
   const handleSubmit = async (e) => {
+
     e.preventDefault();
 
     try {
 
-      await api.post("/payments", {
+      const payload = {
         ...form,
         project_id: Number(form.project_id),
         amount: Number(form.amount),
-      });
+      };
 
-      // reset form
+
+      if (editingId) {
+
+        await api.put(`/payments/${editingId}`, payload);
+
+      } else {
+
+        await api.post("/payments", payload);
+
+      }
+
+
       setForm({
         project_id: "",
         amount: "",
@@ -79,153 +148,197 @@ export default function Payments() {
         notes: "",
       });
 
+      setEditingId(null);
+
       fetchSummary();
+      fetchPayments();
 
     } catch (err) {
-      console.error("Payment failed", err);
+
+      console.error(err);
+
     }
+
   };
 
 
+
   // ===============================
-  // UI
+  // EDIT PAYMENT
   // ===============================
+  const handleEdit = (payment) => {
+
+    setForm({
+      project_id: payment.project_id,
+      amount: payment.amount,
+      payment_date: payment.payment_date?.split("T")[0],
+      payment_method: payment.payment_method,
+      notes: payment.notes,
+    });
+
+    setEditingId(payment.id);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+  };
+
+
+
+  // ===============================
+  // DELETE PAYMENT
+  // ===============================
+  const handleDelete = async (id) => {
+
+    const confirmDelete = window.confirm(
+      "Delete this payment?"
+    );
+
+    if (!confirmDelete) return;
+
+    await api.delete(`/payments/${id}`);
+
+    fetchSummary();
+    fetchPayments();
+
+  };
+
+
 
   return (
+
     <AppLayout title="Payments">
 
 
+
       {/* ===============================
-          ADD PAYMENT FORM
+          FORM
       =============================== */}
-      <div className="card p-5 sm:p-6 md:p-8 mb-8">
+      <div className="card p-6 mb-8">
 
-        <div className="mb-6">
-          <h3 className="text-lg sm:text-xl font-semibold">
-            Add Payment
-          </h3>
+        <h3 className="text-xl font-semibold mb-4">
 
-          <p className="text-sm text-[rgb(var(--color-text-muted))] mt-1">
-            Record incoming payments for projects
-          </p>
-        </div>
+          {editingId
+            ? "Edit Payment"
+            : "Add Payment"}
+
+        </h3>
 
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-
-          {/* Responsive Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-4">
 
 
-            {/* Project */}
-            <div>
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Project
-              </label>
+          <select
+            name="project_id"
+            value={form.project_id}
+            onChange={handleChange}
+            required
+            className="input"
+          >
 
-              <select
-                name="project_id"
-                value={form.project_id}
-                onChange={handleChange}
-                required
-                className="input w-full"
-              >
-                <option value="">Select Project</option>
+            <option value="">
+              Select Project
+            </option>
 
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.project_name}
-                  </option>
-                ))}
+            {projects.map(project => (
 
-              </select>
-            </div>
+              <option key={project.id} value={project.id}>
+                {project.project_name}
+              </option>
+
+            ))}
+
+          </select>
 
 
 
-            {/* Amount */}
-            <div>
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Amount
-              </label>
-
-              <input
-                type="number"
-                name="amount"
-                value={form.amount}
-                onChange={handleChange}
-                required
-                className="input w-full"
-              />
-            </div>
+          <input
+            type="number"
+            name="amount"
+            placeholder="Amount"
+            value={form.amount}
+            onChange={handleChange}
+            required
+            className="input"
+          />
 
 
 
-            {/* Date */}
-            <div>
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Payment Date
-              </label>
-
-              <input
-                type="date"
-                name="payment_date"
-                value={form.payment_date}
-                onChange={handleChange}
-                required
-                className="input w-full"
-              />
-            </div>
+          <input
+            type="date"
+            name="payment_date"
+            value={form.payment_date}
+            onChange={handleChange}
+            required
+            className="input"
+          />
 
 
 
-            {/* Method */}
-            <div>
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Method
-              </label>
+          <select
+            name="payment_method"
+            value={form.payment_method}
+            onChange={handleChange}
+            className="input"
+          >
 
-              <select
-                name="payment_method"
-                value={form.payment_method}
-                onChange={handleChange}
-                className="input w-full"
-              >
-                <option value="UPI">UPI</option>
-                <option value="Cash">Cash</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-              </select>
-            </div>
+            <option value="UPI">UPI</option>
+            <option value="Cash">Cash</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+
+          </select>
 
 
 
-            {/* Notes */}
-            <div className="md:col-span-2">
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Notes
-              </label>
-
-              <input
-                name="notes"
-                value={form.notes}
-                onChange={handleChange}
-                className="input w-full"
-              />
-            </div>
+          <input
+            name="notes"
+            placeholder="Notes"
+            value={form.notes}
+            onChange={handleChange}
+            className="input md:col-span-2"
+          />
 
 
-          </div>
 
+          <div className="flex gap-3 md:col-span-2">
 
-          {/* Button */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              className="btn-primary w-full md:w-auto"
-            >
-              Add Payment
+            <button className="btn-primary">
+
+              {editingId
+                ? "Update Payment"
+                : "Add Payment"}
+
             </button>
+
+
+            {editingId && (
+
+              <button
+                type="button"
+                onClick={() => {
+
+                  setEditingId(null);
+
+                  setForm({
+                    project_id: "",
+                    amount: "",
+                    payment_date: "",
+                    payment_method: "UPI",
+                    notes: "",
+                  });
+
+                }}
+                className="px-4 py-2 border rounded-lg"
+              >
+                Cancel
+              </button>
+
+            )}
+
           </div>
+
 
         </form>
 
@@ -233,93 +346,190 @@ export default function Payments() {
 
 
 
+
       {/* ===============================
-          PAYMENT SUMMARY TABLE
+          PAYMENT LIST TABLE
       =============================== */}
-      <div className="card">
+      <div className="card mb-8">
+
+        <div className="p-4 font-semibold border-b">
+          Payments
+        </div>
 
 
-        {loading ? (
+        <div className="overflow-x-auto">
 
-          <div className="p-8 text-center text-[rgb(var(--color-text-muted))]">
-            Loading payments...
-          </div>
+          <table className="min-w-[700px] w-full">
 
-        ) : (
+            <thead>
 
-          <div className="overflow-x-auto">
+              <tr className="border-b">
 
-            <table className="min-w-[650px] w-full text-sm">
+                <th className="p-4 text-left">
+                  Project
+                </th>
 
-              <thead className="border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg-soft))]">
+                <th className="p-4 text-left">
+                  Amount
+                </th>
 
-                <tr className="text-left text-[rgb(var(--color-text-muted))]">
+                <th className="p-4 text-left">
+                  Date
+                </th>
 
-                  <th className="px-4 sm:px-6 py-4 font-medium whitespace-nowrap">
-                    Project
-                  </th>
+                <th className="p-4 text-left">
+                  Method
+                </th>
 
-                  <th className="px-4 sm:px-6 py-4 font-medium whitespace-nowrap">
-                    Total
-                  </th>
+                <th className="p-4 text-left">
+                  Actions
+                </th>
 
-                  <th className="px-4 sm:px-6 py-4 font-medium whitespace-nowrap">
-                    Paid
-                  </th>
+              </tr>
 
-                  <th className="px-4 sm:px-6 py-4 font-medium whitespace-nowrap">
-                    Pending
-                  </th>
-
-                </tr>
-
-              </thead>
+            </thead>
 
 
+            <tbody>
 
-              <tbody>
+              {payments.map(payment => {
 
-                {summary.map((item) => (
+                const project =
+                  projects.find(p => p.id === payment.project_id);
 
-                  <tr
-                    key={item.id}
-                    className="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-soft))]"
-                  >
+                return (
 
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap font-medium">
-                      {item.project_name}
+                  <tr key={payment.id} className="border-b">
+
+                    <td className="p-4">
+                      {project?.project_name}
                     </td>
 
-
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                      ₹ {Number(item.price).toLocaleString("en-IN")}
+                    <td className="p-4">
+                      ₹{payment.amount}
                     </td>
 
-
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-green-600 font-semibold">
-                      ₹ {Number(item.total_paid).toLocaleString("en-IN")}
+                    <td className="p-4">
+                      {new Date(payment.payment_date).toLocaleDateString()}
                     </td>
 
-
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-red-500 font-semibold">
-                      ₹ {Number(item.pending_amount).toLocaleString("en-IN")}
+                    <td className="p-4">
+                      {payment.payment_method}
                     </td>
 
+                    <td className="p-4 flex gap-3">
+
+                      <button
+                        onClick={() => handleEdit(payment)}
+                        className="text-blue-600"
+                      >
+                        Edit
+                      </button>
+
+
+                      <button
+                        onClick={() => handleDelete(payment.id)}
+                        className="text-red-600"
+                      >
+                        Delete
+                      </button>
+
+                    </td>
 
                   </tr>
 
-                ))}
+                );
 
-              </tbody>
+              })}
 
-            </table>
+            </tbody>
 
-          </div>
+          </table>
 
-        )}
+        </div>
 
       </div>
 
+
+
+
+      {/* ===============================
+          SUMMARY TABLE
+      =============================== */}
+      <div className="card">
+
+        <div className="p-4 font-semibold border-b">
+          Project Summary
+        </div>
+
+
+        <div className="overflow-x-auto">
+
+          <table className="min-w-[650px] w-full">
+
+            <thead>
+
+              <tr className="border-b">
+
+                <th className="p-4 text-left">
+                  Project
+                </th>
+
+                <th className="p-4 text-left">
+                  Total
+                </th>
+
+                <th className="p-4 text-left">
+                  Paid
+                </th>
+
+                <th className="p-4 text-left">
+                  Pending
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              {summary.map(item => (
+
+                <tr key={item.id} className="border-b">
+
+                  <td className="p-4">
+                    {item.project_name}
+                  </td>
+
+                  <td className="p-4">
+                    ₹{item.price}
+                  </td>
+
+                  <td className="p-4 text-green-600">
+                    ₹{item.total_paid}
+                  </td>
+
+                  <td className="p-4 text-red-600">
+                    ₹{item.pending_amount}
+                  </td>
+
+                </tr>
+
+              ))}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+
     </AppLayout>
+
   );
+
 }

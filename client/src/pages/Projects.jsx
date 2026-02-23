@@ -6,7 +6,10 @@ export default function Projects() {
 
   const [projects, setProjects] = useState([]);
   const [clients, setClients] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
+  const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
     client_id: "",
@@ -19,59 +22,99 @@ export default function Projects() {
 
 
   // ===============================
-  // FETCH DATA
+  // FETCH PROJECTS
   // ===============================
-
   const fetchProjects = async () => {
+
     try {
+
       const res = await api.get("/projects");
+
       setProjects(res.data);
+
     } catch (err) {
-      console.error("Failed to fetch projects", err);
+
+      console.error(err);
+
     } finally {
+
       setLoading(false);
+
     }
+
   };
 
+
+  // ===============================
+  // FETCH CLIENTS
+  // ===============================
   const fetchClients = async () => {
+
     try {
+
       const res = await api.get("/clients");
+
       setClients(res.data);
+
     } catch (err) {
-      console.error("Failed to fetch clients", err);
+
+      console.error(err);
+
     }
+
   };
+
 
   useEffect(() => {
+
     fetchProjects();
     fetchClients();
+
   }, []);
 
 
-  // ===============================
-  // FORM HANDLING
-  // ===============================
 
+  // ===============================
+  // INPUT CHANGE
+  // ===============================
   const handleChange = (e) => {
+
     setForm({
       ...form,
       [e.target.name]: e.target.value,
     });
+
   };
 
 
+
+  // ===============================
+  // CREATE OR UPDATE PROJECT
+  // ===============================
   const handleSubmit = async (e) => {
+
     e.preventDefault();
 
     try {
 
-      await api.post("/projects", {
+      const payload = {
         ...form,
         price: Number(form.price),
         client_id: Number(form.client_id),
-      });
+      };
 
-      // reset form
+
+      if (editingId) {
+
+        await api.put(`/projects/${editingId}`, payload);
+
+      } else {
+
+        await api.post("/projects", payload);
+
+      }
+
+
       setForm({
         client_id: "",
         project_name: "",
@@ -81,19 +124,69 @@ export default function Projects() {
         deadline: "",
       });
 
+      setEditingId(null);
+
       fetchProjects();
 
     } catch (err) {
-      console.error("Project creation failed", err);
+
+      console.error(err);
+
     }
+
   };
 
 
-  // ===============================
-  // STATUS BADGE STYLES
-  // ===============================
 
+  // ===============================
+  // EDIT PROJECT
+  // ===============================
+  const handleEdit = (project) => {
+
+    setForm({
+      client_id: project.client_id || "",
+      project_name: project.project_name,
+      description: project.description || "",
+      price: project.price,
+      status: project.status,
+      deadline: project.deadline?.split("T")[0],
+    });
+
+    setEditingId(project.id);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+  };
+
+
+
+  // ===============================
+  // DELETE PROJECT
+  // ===============================
+  const handleDelete = async (id) => {
+
+    const confirmDelete = window.confirm(
+      "Delete this project?"
+    );
+
+    if (!confirmDelete) return;
+
+    await api.delete(`/projects/${id}`);
+
+    fetchProjects();
+
+  };
+
+
+
+  // ===============================
+  // STATUS BADGE
+  // ===============================
   const statusBadge = (status) => {
+
     if (status === "completed")
       return "bg-green-100 text-green-700";
 
@@ -101,165 +194,162 @@ export default function Projects() {
       return "bg-yellow-100 text-yellow-700";
 
     return "bg-gray-100 text-gray-600";
+
   };
 
 
-  // ===============================
-  // UI
-  // ===============================
 
   return (
+
     <AppLayout title="Projects">
 
 
-      {/* ===============================
-          CREATE PROJECT FORM
-      =============================== */}
+      {/* FORM */}
       <div className="card p-5 sm:p-6 md:p-8 mb-8">
 
-        <div className="mb-6">
-          <h3 className="text-lg sm:text-xl font-semibold">
-            Create New Project
-          </h3>
+        <h3 className="text-xl font-semibold mb-4">
 
-          <p className="text-sm text-[rgb(var(--color-text-muted))] mt-1">
-            Assign client and define project details
-          </p>
-        </div>
+          {editingId
+            ? "Edit Project"
+            : "Create Project"}
+
+        </h3>
 
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
 
 
-          {/* Responsive Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
 
             {/* Client */}
-            <div>
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Client
-              </label>
+            <select
+              name="client_id"
+              value={form.client_id}
+              onChange={handleChange}
+              required
+              className="input"
+            >
 
-              <select
-                name="client_id"
-                value={form.client_id}
-                onChange={handleChange}
-                required
-                className="input w-full"
-              >
-                <option value="">Select Client</option>
+              <option value="">Select Client</option>
 
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name}
-                  </option>
-                ))}
+              {clients.map((client) => (
 
-              </select>
-            </div>
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+
+              ))}
+
+            </select>
 
 
 
-            {/* Project Name */}
-            <div>
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Project Name
-              </label>
-
-              <input
-                name="project_name"
-                value={form.project_name}
-                onChange={handleChange}
-                required
-                className="input w-full"
-              />
-            </div>
+            {/* Project name */}
+            <input
+              name="project_name"
+              value={form.project_name}
+              onChange={handleChange}
+              placeholder="Project name"
+              required
+              className="input"
+            />
 
 
 
             {/* Price */}
-            <div>
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Price
-              </label>
-
-              <input
-                name="price"
-                type="number"
-                value={form.price}
-                onChange={handleChange}
-                required
-                className="input w-full"
-              />
-            </div>
+            <input
+              type="number"
+              name="price"
+              value={form.price}
+              onChange={handleChange}
+              placeholder="Price"
+              required
+              className="input"
+            />
 
 
 
             {/* Deadline */}
-            <div>
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Deadline
-              </label>
-
-              <input
-                name="deadline"
-                type="date"
-                value={form.deadline}
-                onChange={handleChange}
-                required
-                className="input w-full"
-              />
-            </div>
+            <input
+              type="date"
+              name="deadline"
+              value={form.deadline}
+              onChange={handleChange}
+              required
+              className="input"
+            />
 
 
 
             {/* Status */}
-            <div>
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Status
-              </label>
+            <select
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+              className="input"
+            >
 
-              <select
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-                className="input w-full"
-              >
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
+              <option value="pending">
+                Pending
+              </option>
+
+              <option value="completed">
+                Completed
+              </option>
+
+            </select>
 
 
 
             {/* Description */}
-            <div className="md:col-span-2">
-              <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
-                Description
-              </label>
-
-              <input
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                required
-                className="input w-full"
-              />
-            </div>
+            <input
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Description"
+              required
+              className="input md:col-span-2"
+            />
 
 
           </div>
 
 
-          {/* Button */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              className="btn-primary w-full md:w-auto"
-            >
-              Create Project
+
+          <div className="flex gap-3">
+
+            <button className="btn-primary">
+
+              {editingId
+                ? "Update Project"
+                : "Create Project"}
+
             </button>
+
+
+            {editingId && (
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingId(null);
+                  setForm({
+                    client_id: "",
+                    project_name: "",
+                    description: "",
+                    price: "",
+                    status: "pending",
+                    deadline: "",
+                  });
+                }}
+                className="px-4 py-2 border rounded-lg"
+              >
+                Cancel
+              </button>
+
+            )}
+
           </div>
 
 
@@ -269,15 +359,12 @@ export default function Projects() {
 
 
 
-      {/* ===============================
-          PROJECTS TABLE
-      =============================== */}
+      {/* TABLE */}
       <div className="card">
-
 
         {loading ? (
 
-          <div className="p-8 text-center text-[rgb(var(--color-text-muted))]">
+          <div className="p-8 text-center">
             Loading projects...
           </div>
 
@@ -285,30 +372,34 @@ export default function Projects() {
 
           <div className="overflow-x-auto">
 
-            <table className="min-w-[750px] w-full text-sm">
+            <table className="min-w-[750px] w-full">
 
-              <thead className="border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg-soft))]">
+              <thead>
 
-                <tr className="text-left text-[rgb(var(--color-text-muted))]">
+                <tr>
 
-                  <th className="px-4 sm:px-6 py-4 font-medium whitespace-nowrap">
+                  <th className="p-4 text-left">
                     Project
                   </th>
 
-                  <th className="px-4 sm:px-6 py-4 font-medium whitespace-nowrap">
+                  <th className="p-4 text-left">
                     Client
                   </th>
 
-                  <th className="px-4 sm:px-6 py-4 font-medium whitespace-nowrap">
+                  <th className="p-4 text-left">
                     Price
                   </th>
 
-                  <th className="px-4 sm:px-6 py-4 font-medium whitespace-nowrap">
+                  <th className="p-4 text-left">
                     Deadline
                   </th>
 
-                  <th className="px-4 sm:px-6 py-4 font-medium whitespace-nowrap">
+                  <th className="p-4 text-left">
                     Status
+                  </th>
+
+                  <th className="p-4 text-left">
+                    Actions
                   </th>
 
                 </tr>
@@ -316,48 +407,54 @@ export default function Projects() {
               </thead>
 
 
-
               <tbody>
 
                 {projects.map((project) => (
 
-                  <tr
-                    key={project.id}
-                    className="border-b border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-bg-soft))]"
-                  >
+                  <tr key={project.id} className="border-t">
 
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap font-medium">
+                    <td className="p-4">
                       {project.project_name}
                     </td>
 
-
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <td className="p-4">
                       {project.client_name}
                     </td>
 
-
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                      ₹ {Number(project.price).toLocaleString("en-IN")}
+                    <td className="p-4">
+                      ₹{project.price}
                     </td>
 
-
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                      {new Date(project.deadline).toLocaleDateString("en-IN")}
+                    <td className="p-4">
+                      {new Date(project.deadline).toLocaleDateString()}
                     </td>
 
+                    <td className="p-4">
 
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-
-                      <span
-                        className={`px-3 py-1 text-xs rounded-full font-semibold ${statusBadge(
-                          project.status
-                        )}`}
-                      >
+                      <span className={`px-2 py-1 rounded ${statusBadge(project.status)}`}>
                         {project.status}
                       </span>
 
                     </td>
 
+                    <td className="p-4 flex gap-3">
+
+                      <button
+                        onClick={() => handleEdit(project)}
+                        className="text-blue-600"
+                      >
+                        Edit
+                      </button>
+
+
+                      <button
+                        onClick={() => handleDelete(project.id)}
+                        className="text-red-600"
+                      >
+                        Delete
+                      </button>
+
+                    </td>
 
                   </tr>
 
@@ -373,6 +470,9 @@ export default function Projects() {
 
       </div>
 
+
     </AppLayout>
+
   );
+
 }
