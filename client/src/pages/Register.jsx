@@ -35,12 +35,29 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await api.post("/auth/register", form);
-      navigate("/login", { replace: true });
+      const res = await api.post("/auth/register", form);
+
+      // CHECK SUCCESS
+      if (res.data.success) {
+        
+        // SAVE TOKEN
+        localStorage.setItem("token", res.data.token);
+
+        // SAVE USER (optional but recommended)
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+
+        // REDIRECT TO DASHBOARD
+        navigate("/dashboard", { replace: true });
+
+      } else {
+        setError(res.data.message || res.data.error || "Registration failed");
+      }
+
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Registration failed. Try different email."
+        err.response?.data?.error ||
+        "Registration failed. Try different email."
       );
     } finally {
       setLoading(false);
@@ -50,7 +67,7 @@ export default function Register() {
   return (
     <div className="min-h-screen flex bg-[rgb(var(--color-bg-soft))]">
 
-      {/* LEFT SIDE - Branding */}
+      {/* LEFT SIDE */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[rgb(var(--color-primary))] to-[rgb(var(--color-accent))]" />
         <div className="relative z-10 p-16 flex flex-col justify-center text-white">
@@ -63,7 +80,7 @@ export default function Register() {
         </div>
       </div>
 
-      {/* RIGHT SIDE - Register Card */}
+      {/* RIGHT SIDE */}
       <div className="flex w-full lg:w-1/2 items-center justify-center px-6 sm:px-8">
 
         <div className="card w-full max-w-md p-8 sm:p-10">
@@ -84,7 +101,6 @@ export default function Register() {
 
           <form onSubmit={handleRegister} className="space-y-5">
 
-            {/* Name */}
             <div>
               <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
                 Name
@@ -99,7 +115,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
                 Email
@@ -114,7 +129,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm mb-1 text-[rgb(var(--color-text-muted))]">
                 Password

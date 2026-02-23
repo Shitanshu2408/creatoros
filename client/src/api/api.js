@@ -2,26 +2,34 @@ import axios from "axios";
 
 /*
   Production-ready Axios instance
-  Works for:
-  - Local development
+  Supports:
+  - Localhost
   - Vercel frontend
   - Render backend
   - JWT authentication
+  - Auto logout on 401
+  - Proper error handling
 */
 
-// Automatically choose correct API URL
+// ===============================
+// BASE URL
+// ===============================
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-// Create axios instance
+
+// ===============================
+// AXIOS INSTANCE
+// ===============================
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: false, // set true only if using cookies
+  withCredentials: false,
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 15000, // 15 seconds timeout
+  timeout: 15000,
 });
+
 
 // ===============================
 // REQUEST INTERCEPTOR
@@ -37,39 +45,49 @@ api.interceptors.request.use(
       }
 
       return config;
+
     } catch (error) {
       console.error("Request interceptor error:", error);
       return config;
     }
   },
+
   (error) => Promise.reject(error)
 );
 
+
 // ===============================
-// RESPONSE INTERCEPTOR
-// Handles global errors
+// RESPONSE INTERCEPTOR (FIXED)
+// Handles global errors properly
 // ===============================
 api.interceptors.response.use(
+
+  // Success → return normally
   (response) => response,
 
+  // Error handler
   (error) => {
+
+    // Network error
     if (!error.response) {
-      console.error("Network error or server not responding");
+      console.error("Network error: Server not responding");
+
       return Promise.reject({
+        status: 0,
         message: "Server not responding",
+        isNetworkError: true,
       });
     }
 
-    const { status } = error.response;
+    const { status, data } = error.response;
 
-    // Unauthorized → logout user
+    // Unauthorized → logout automatically
     if (status === 401) {
-      console.warn("Unauthorized. Logging out...");
+      console.warn("Session expired. Logging out.");
 
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      // redirect to login
       window.location.href = "/login";
     }
 
@@ -80,30 +98,63 @@ api.interceptors.response.use(
 
     // Server error
     if (status >= 500) {
-      console.error("Server error");
+      console.error("Server error:", data);
     }
 
-    return Promise.reject(error.response.data || error);
+    // Return proper structured error
+    return Promise.reject({
+      status,
+      message:
+        data?.message ||
+        data?.error ||
+        "Request failed",
+      data,
+    });
   }
 );
 
+
 // ===============================
-// Optional helper methods
+// AUTH HELPERS
 // ===============================
 
-// Set token manually
+// Save token
 export const setAuthToken = (token) => {
   if (token) {
     localStorage.setItem("token", token);
   }
 };
 
-// Remove token
+// Save user
+export const setUser = (user) => {
+  if (user) {
+    localStorage.setItem("user", JSON.stringify(user));
+  }
+};
+
+// Get user
+export const getUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user"));
+  } catch {
+    return null;
+  }
+};
+
+// Check login
+export const isAuthenticated = () => {
+  return !!localStorage.getItem("token");
+};
+
+// Logout
 export const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   window.location.href = "/login";
 };
 
-// Export main instance
+
+// ===============================
+// EXPORT
+// ===============================
 export default api;
