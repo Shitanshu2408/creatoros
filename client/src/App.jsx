@@ -7,6 +7,7 @@ import Clients from "./pages/Clients";
 import Projects from "./pages/Projects";
 import Payments from "./pages/Payments";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Profile from "./pages/Profile";
 
 function App() {
 
@@ -83,6 +84,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <Profile />
+    </ProtectedRoute>
+  }
+/>
 
         {/* Catch-all route */}
         <Route
@@ -96,6 +105,8 @@ function App() {
 
     </BrowserRouter>
   );
+
+  
 
 }
 
